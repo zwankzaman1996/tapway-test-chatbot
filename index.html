@@ -53,11 +53,22 @@
         .send-btn { padding: 0 20px; background: var(--btn-green); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
         .send-btn:hover { background: var(--btn-green-hover); }
 
-        /* TICKET ACTIONS */
-        .ticket-actions { margin-top: 10px; display: flex; gap: 10px; flex-wrap: wrap; }
-        .btn-ticket { background: var(--btn-blue); color: white; text-decoration: none; padding: 8px 15px; border-radius: 5px; font-size: 13px; display: inline-block; cursor: pointer; }
-        .btn-reset { background: transparent; border: 1px solid var(--border); color: var(--text); padding: 8px 15px; border-radius: 5px; font-size: 13px; cursor: pointer;}
-        .btn-reset:hover { background: var(--bg-canvas); }
+        /* TICKET FOOTER STYLING */
+        .ticket-footer {
+            margin-top: 15px; 
+            padding-top: 10px; 
+            border-top: 1px solid var(--border); 
+            font-size: 0.9em; 
+            color: var(--text-gray);
+        }
+        .ticket-link {
+            color: var(--btn-blue); 
+            text-decoration: none; 
+            font-weight: bold;
+            display: inline-block;
+            margin-top: 5px;
+        }
+        .ticket-link:hover { text-decoration: underline; }
 
         .loading { font-size: 12px; color: var(--text-gray); margin-left: 15px; display: none; margin-bottom: 10px;}
     </style>
@@ -89,14 +100,11 @@
 </div>
 
 <script>
-    // --- COPY YOUR EXACT NGROK URL HERE ---
+    // --- CONFIGURATION ---
     const API_URL = "https://pseudomythically-penalizable-cristal.ngrok-free.dev"; 
-    
-    // Replace with your Jira link
     const TICKET_URL = "https://www.notion.so/tapway/1b2741085eae808a9f18f784dfbeef96"; 
 
     // --- HELPER: NGROK HEADERS ---
-    // This allows us to bypass the "Visit Site" warning page
     const requestOptions = {
         headers: {
             "ngrok-skip-browser-warning": "true" 
@@ -106,7 +114,7 @@
     // 1. Initialize: Fetch Topics
     async function init() {
         try {
-            const res = await fetch(`${API_URL}/topics`, requestOptions); // <--- ADDED HEADERS
+            const res = await fetch(`${API_URL}/topics`, requestOptions); 
             const topics = await res.json();
             renderTopics(topics);
         } catch (e) {
@@ -136,7 +144,6 @@
     }
 
     async function startNewChat() {
-        // Use POST with headers
         await fetch(`${API_URL}/clear`, { method: "POST", ...requestOptions }); 
         
         document.getElementById("messages").innerHTML = "";
@@ -144,7 +151,7 @@
         document.getElementById("chat-view").style.display = "none";
         document.getElementById("welcome-view").style.display = "flex";
         document.querySelector(".new-chat-btn").style.display = "none";
-        init(); // Refresh topics
+        init(); 
     }
 
     // 3. Chat Logic
@@ -161,7 +168,6 @@
         formData.append("query", text);
 
         try {
-            // Add headers to the POST request as well
             const res = await fetch(`${API_URL}/chat`, { 
                 method: "POST", 
                 body: formData,
@@ -170,11 +176,8 @@
             const data = await res.json();
             document.getElementById("loader").style.display = "none";
             
-            if (data.answer.includes("I don't have that information")) {
-                handleNotFound(data.answer);
-            } else {
-                addMsg("bot", data.answer);
-            }
+            // --- UPDATED LOGIC HERE ---
+            processBotResponse(data.answer);
 
         } catch (e) {
             document.getElementById("loader").style.display = "none";
@@ -182,30 +185,65 @@
         }
     }
 
-    function addMsg(role, text) {
+    /**
+     * Handles the response logic based on whether the bot knows the answer or not.
+     */
+    function processBotResponse(rawText) {
+        // Phrases that indicate the bot doesn't know the answer
+        const failureTriggers = [
+            "I am sorry",
+            "unable to answer",
+            "I don't have that information",
+            "I cannot answer"
+        ];
+
+        const isUnknown = failureTriggers.some(phrase => 
+            rawText.toLowerCase().includes(phrase.toLowerCase())
+        );
+
+        let finalHtml = "";
+
+        if (isUnknown) {
+            // REQ 2: Fallback Message (Replace original text)
+            finalHtml = `
+                Sorry I may not have the information that you need, shall I navigate you to create a ticket via the link below?
+                <br>
+                <div class="ticket-footer" style="border-top: none; margin-top: 5px;">
+                   👉 <a href="${TICKET_URL}" target="_blank" class="ticket-link">Create Support Ticket</a>
+                </div>
+            `;
+        } else {
+            // REQ 1: Standard Message (Keep text + Append Footer)
+            const contentHtml = marked.parse(rawText);
+            
+            finalHtml = `
+                ${contentHtml}
+                <div class="ticket-footer">
+                   If the respond is not what u wanted, u can create a ticket via the link below:
+                   <br>
+                   🔗 <a href="${TICKET_URL}" target="_blank" class="ticket-link">Create Support Ticket</a>
+                </div>
+            `;
+        }
+
+        // Pass true as 3rd arg to indicate this is pre-processed HTML
+        addMsg("bot", finalHtml, true);
+    }
+
+    // Updated addMsg to support raw HTML injection for the footer logic
+    function addMsg(role, content, isHtml = false) {
         const box = document.getElementById("messages");
         const div = document.createElement("div");
         div.className = `msg ${role}`;
-        if(role === 'bot') div.innerHTML = marked.parse(text);
-        else div.textContent = text;
-        box.appendChild(div);
-        box.scrollTop = box.scrollHeight;
-    }
-
-    function handleNotFound(text) {
-        const box = document.getElementById("messages");
-        const div = document.createElement("div");
-        div.className = "msg bot";
-        div.innerHTML = marked.parse(text);
-
-        const actionDiv = document.createElement("div");
-        actionDiv.className = "ticket-actions";
-        actionDiv.innerHTML = `
-            <a href="${TICKET_URL}" target="_blank" class="btn-ticket">📝 Yes, Create Ticket</a>
-            <button onclick="startNewChat()" class="btn-reset">No, Start New Chat</button>
-        `;
         
-        div.appendChild(actionDiv);
+        if (role === 'bot') {
+            // If isHtml is true, content contains our custom HTML (with footer).
+            // If false, it's plain markdown that needs parsing.
+            div.innerHTML = isHtml ? content : marked.parse(content);
+        } else {
+            div.textContent = content;
+        }
+        
         box.appendChild(div);
         box.scrollTop = box.scrollHeight;
     }
