@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tapway Support Chatbot</title>
+    <title>Tapway Support</title>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
         /* GitHub Dark Mode Colors */
@@ -89,17 +89,29 @@
 </div>
 
 <script>
+    // --- COPY YOUR EXACT NGROK URL HERE ---
     const API_URL = "https://pseudomythically-penalizable-cristal.ngrok-free.dev"; 
-    const TICKET_URL = "https://www.notion.so/tapway/Projects-Tasks-Master-Deck-18f741085eae803aaf06d641adf11870?p=1b2741085eae808a9f18f784dfbeef96&pm=c"; // REPLACE THIS with your actual Ticket URL
+    
+    // Replace with your Jira link
+    const TICKET_URL = "https://www.notion.so/tapway/1b2741085eae808a9f18f784dfbeef96"; 
+
+    // --- HELPER: NGROK HEADERS ---
+    // This allows us to bypass the "Visit Site" warning page
+    const requestOptions = {
+        headers: {
+            "ngrok-skip-browser-warning": "true" 
+        }
+    };
 
     // 1. Initialize: Fetch Topics
     async function init() {
         try {
-            const res = await fetch(`${API_URL}/topics`);
+            const res = await fetch(`${API_URL}/topics`, requestOptions); // <--- ADDED HEADERS
             const topics = await res.json();
             renderTopics(topics);
         } catch (e) {
-            renderTopics(["General Support"]); // Fallback
+            console.error(e);
+            renderTopics(["General Support"]); 
         }
     }
 
@@ -120,21 +132,19 @@
         document.getElementById("welcome-view").style.display = "none";
         document.getElementById("chat-view").style.display = "flex";
         document.querySelector(".new-chat-btn").style.display = "block";
-        
-        // Add system welcome message
         addMsg("bot", `You selected **${topic}**. \nHow can I help you with that?`);
     }
 
     async function startNewChat() {
-        // Clear Backend Memory
-        await fetch(`${API_URL}/clear`, { method: "POST" });
+        // Use POST with headers
+        await fetch(`${API_URL}/clear`, { method: "POST", ...requestOptions }); 
         
-        // Reset UI
         document.getElementById("messages").innerHTML = "";
         document.getElementById("input-container").style.display = "flex";
         document.getElementById("chat-view").style.display = "none";
         document.getElementById("welcome-view").style.display = "flex";
         document.querySelector(".new-chat-btn").style.display = "none";
+        init(); // Refresh topics
     }
 
     // 3. Chat Logic
@@ -151,11 +161,15 @@
         formData.append("query", text);
 
         try {
-            const res = await fetch(`${API_URL}/chat`, { method: "POST", body: formData });
+            // Add headers to the POST request as well
+            const res = await fetch(`${API_URL}/chat`, { 
+                method: "POST", 
+                body: formData,
+                ...requestOptions 
+            });
             const data = await res.json();
             document.getElementById("loader").style.display = "none";
             
-            // Check for the "Not Found" phrase
             if (data.answer.includes("I don't have that information")) {
                 handleNotFound(data.answer);
             } else {
@@ -178,14 +192,12 @@
         box.scrollTop = box.scrollHeight;
     }
 
-    // 4. Ticket Logic
     function handleNotFound(text) {
         const box = document.getElementById("messages");
         const div = document.createElement("div");
         div.className = "msg bot";
         div.innerHTML = marked.parse(text);
 
-        // Append the Ticket Option Buttons
         const actionDiv = document.createElement("div");
         actionDiv.className = "ticket-actions";
         actionDiv.innerHTML = `
@@ -198,10 +210,8 @@
         box.scrollTop = box.scrollHeight;
     }
 
-    // Start App
     init();
 </script>
 
 </body>
 </html>
-
