@@ -3,70 +3,168 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tapway Support (Safe Mode)</title>
+    <title>Tapway Support Chatbot</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
-        :root { --bg: #0d1117; --text: #c9d1d9; --user: #1f6feb; --bot: #161b22; }
-        body { margin: 0; font-family: sans-serif; background: var(--bg); color: var(--text); height: 100vh; display: flex; justify-content: center; }
-        #app { width: 100%; max-width: 900px; display: flex; flex-direction: column; border: 1px solid #30363d; }
-        #messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; }
-        .msg { max-width: 80%; padding: 10px 15px; border-radius: 6px; line-height: 1.5; font-size: 14px; white-space: pre-wrap; } /* pre-wrap preserves formatting */
-        .user { background: var(--user); color: white; align-self: flex-end; }
-        .bot { background: var(--bot); border: 1px solid #30363d; align-self: flex-start; }
-        .input-box { padding: 15px; display: flex; gap: 10px; border-top: 1px solid #30363d; }
-        input { flex: 1; padding: 10px; background: var(--bg); border: 1px solid #30363d; color: var(--text); }
-        button { padding: 10px 20px; background: #238636; color: white; border: none; cursor: pointer; }
+        /* GitHub Dark Mode Colors */
+        :root {
+            --bg-canvas: #0d1117; --bg-subtle: #161b22; --border: #30363d;
+            --text: #c9d1d9; --text-gray: #8b949e; 
+            --btn-green: #238636; --btn-green-hover: #2ea043;
+            --btn-blue: #1f6feb; --btn-blue-hover: #388bfd;
+            --msg-user: #1f6feb; --msg-bot: #161b22;
+        }
+
+        body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; background: var(--bg-canvas); color: var(--text); height: 100vh; display: flex; justify-content: center; }
+        
+        #app { width: 100%; max-width: 900px; display: flex; flex-direction: column; border-left: 1px solid var(--border); border-right: 1px solid var(--border); position: relative; }
+        
+        /* HEADER */
+        header { background: var(--bg-subtle); padding: 15px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .brand { font-weight: bold; font-size: 18px; display: flex; align-items: center; gap: 10px; }
+        .tag { font-size: 11px; border: 1px solid var(--btn-green); color: var(--btn-green); padding: 2px 8px; border-radius: 12px; }
+        .new-chat-btn { font-size: 12px; background: transparent; border: 1px solid var(--border); color: var(--text); padding: 5px 10px; border-radius: 5px; cursor: pointer; display: none; }
+        .new-chat-btn:hover { background: var(--border); }
+
+        /* VIEW 1: WELCOME SCREEN */
+        #welcome-view { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; text-align: center; }
+        .topic-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; width: 100%; max-width: 600px; margin-top: 30px; }
+        .topic-card { background: var(--bg-subtle); border: 1px solid var(--border); padding: 20px; border-radius: 8px; cursor: pointer; transition: 0.2s; text-align: center; font-weight: 600; color: var(--btn-blue); }
+        .topic-card:hover { border-color: var(--btn-blue); transform: translateY(-2px); }
+
+        /* VIEW 2: CHAT SCREEN */
+        #chat-view { flex: 1; display: none; flex-direction: column; overflow: hidden; }
+        #messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 20px; }
+        
+        .msg { max-width: 85%; padding: 12px 16px; border-radius: 8px; line-height: 1.6; font-size: 14px; }
+        .user { background: var(--msg-user); color: white; align-self: flex-end; border-top-right-radius: 2px; }
+        .bot { background: var(--msg-bot); border: 1px solid var(--border); align-self: flex-start; border-top-left-radius: 2px; }
+
+        /* Markdown Styles */
+        .bot p { margin: 0 0 10px 0; } .bot p:last-child { margin: 0; }
+        .bot pre { background: #000; padding: 10px; border-radius: 6px; overflow-x: auto; border: 1px solid var(--border); }
+        .bot code { background: rgba(255,255,255,0.1); padding: 2px 4px; border-radius: 3px; font-family: monospace; font-size: 0.9em;}
+        .bot strong { color: white; }
+
+        /* INPUT AREA */
+        .input-box { background: var(--bg-subtle); padding: 20px; border-top: 1px solid var(--border); display: flex; gap: 10px; }
+        input { flex: 1; padding: 12px; background: var(--bg-canvas); border: 1px solid var(--border); color: var(--text); border-radius: 6px; }
+        input:focus { outline: none; border-color: var(--btn-blue); }
+        .send-btn { padding: 0 20px; background: var(--btn-green); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .send-btn:hover { background: var(--btn-green-hover); }
+
+        /* TICKET ACTIONS */
+        .ticket-actions { margin-top: 10px; display: flex; gap: 10px; flex-wrap: wrap; }
+        .btn-ticket { background: var(--btn-blue); color: white; text-decoration: none; padding: 8px 15px; border-radius: 5px; font-size: 13px; display: inline-block; cursor: pointer; }
+        .btn-reset { background: transparent; border: 1px solid var(--border); color: var(--text); padding: 8px 15px; border-radius: 5px; font-size: 13px; cursor: pointer;}
+        .btn-reset:hover { background: var(--bg-canvas); }
+
+        .loading { font-size: 12px; color: var(--text-gray); margin-left: 15px; display: none; margin-bottom: 10px;}
     </style>
 </head>
 <body>
+
 <div id="app">
-    <div style="padding:15px; border-bottom:1px solid #333; font-weight:bold">🤖 Tapway Support</div>
-    <div id="messages">
-        <div class="msg bot">System Online. Ask me anything.</div>
+    <header>
+        <div class="brand">🤖 Tapway Support <span class="tag">AI Agent</span></div>
+        <button class="new-chat-btn" onclick="startNewChat()">Start New Chat</button>
+    </header>
+
+    <div id="welcome-view">
+        <h2 style="margin-bottom: 10px;">How can I help you today?</h2>
+        <p style="color: var(--text-gray);">Select a topic to start troubleshooting.</p>
+        <div id="topic-grid" class="topic-grid">
+            <div style="color: var(--text-gray);">Loading topics...</div>
+        </div>
     </div>
-    <div class="input-box">
-        <input type="text" id="userInput" placeholder="Type here..." onkeypress="if(event.key==='Enter') send()">
-        <button onclick="send()">Send</button>
+
+    <div id="chat-view">
+        <div id="messages"></div>
+        <div class="loading" id="loader">Agent is thinking...</div>
+        <div class="input-box" id="input-container">
+            <input type="text" id="userInput" placeholder="Describe your issue..." onkeypress="if(event.key==='Enter') send()">
+            <button class="send-btn" onclick="send()">Send</button>
+        </div>
     </div>
 </div>
 
 <script>
-    // 1. Paste your ngrok URL here (No trailing slash)
-    const API_URL = "https://pseudomythically-penalizable-cristal.ngrok-free.dev"; 
+    const API_URL = ""; 
+    const TICKET_URL = "https://jira.tapway.com/plugins/servlet/desk/portal/1"; // REPLACE THIS with your actual Ticket URL
 
+    // 1. Initialize: Fetch Topics
+    async function init() {
+        try {
+            const res = await fetch(`${API_URL}/topics`);
+            const topics = await res.json();
+            renderTopics(topics);
+        } catch (e) {
+            renderTopics(["General Support"]); // Fallback
+        }
+    }
+
+    function renderTopics(topics) {
+        const grid = document.getElementById("topic-grid");
+        grid.innerHTML = "";
+        topics.forEach(topic => {
+            const div = document.createElement("div");
+            div.className = "topic-card";
+            div.innerText = topic;
+            div.onclick = () => selectTopic(topic);
+            grid.appendChild(div);
+        });
+    }
+
+    // 2. State Management
+    function selectTopic(topic) {
+        document.getElementById("welcome-view").style.display = "none";
+        document.getElementById("chat-view").style.display = "flex";
+        document.querySelector(".new-chat-btn").style.display = "block";
+        
+        // Add system welcome message
+        addMsg("bot", `You selected **${topic}**. \nHow can I help you with that?`);
+    }
+
+    async function startNewChat() {
+        // Clear Backend Memory
+        await fetch(`${API_URL}/clear`, { method: "POST" });
+        
+        // Reset UI
+        document.getElementById("messages").innerHTML = "";
+        document.getElementById("input-container").style.display = "flex";
+        document.getElementById("chat-view").style.display = "none";
+        document.getElementById("welcome-view").style.display = "flex";
+        document.querySelector(".new-chat-btn").style.display = "none";
+    }
+
+    // 3. Chat Logic
     async function send() {
         const input = document.getElementById("userInput");
-        const text = input.value;
+        const text = input.value.trim();
         if (!text) return;
 
         addMsg("user", text);
-        input.value = "Sending...";
-        input.disabled = true;
+        input.value = "";
+        document.getElementById("loader").style.display = "block";
 
         const formData = new FormData();
         formData.append("query", text);
 
         try {
-            console.log("Sending request to:", `${API_URL}/chat`);
             const res = await fetch(`${API_URL}/chat`, { method: "POST", body: formData });
-            
-            if (!res.ok) throw new Error(`Server Status: ${res.status}`);
-            
             const data = await res.json();
-            console.log("Received data:", data);
-
-            if (data.answer) {
-                addMsg("bot", data.answer);
+            document.getElementById("loader").style.display = "none";
+            
+            // Check for the "Not Found" phrase
+            if (data.answer.includes("I don't have that information")) {
+                handleNotFound(data.answer);
             } else {
-                addMsg("bot", "⚠️ Server responded, but answer was empty.");
+                addMsg("bot", data.answer);
             }
 
         } catch (e) {
-            console.error(e);
-            addMsg("bot", `❌ Connection Error: ${e.message}`);
-        } finally {
-            input.value = "";
-            input.disabled = false;
-            input.focus();
+            document.getElementById("loader").style.display = "none";
+            addMsg("bot", "Error: Backend offline.");
         }
     }
 
@@ -74,10 +172,35 @@
         const box = document.getElementById("messages");
         const div = document.createElement("div");
         div.className = `msg ${role}`;
-        div.textContent = text; // Using simple textContent to prevent crashing
+        if(role === 'bot') div.innerHTML = marked.parse(text);
+        else div.textContent = text;
         box.appendChild(div);
         box.scrollTop = box.scrollHeight;
     }
+
+    // 4. Ticket Logic
+    function handleNotFound(text) {
+        const box = document.getElementById("messages");
+        const div = document.createElement("div");
+        div.className = "msg bot";
+        div.innerHTML = marked.parse(text);
+
+        // Append the Ticket Option Buttons
+        const actionDiv = document.createElement("div");
+        actionDiv.className = "ticket-actions";
+        actionDiv.innerHTML = `
+            <a href="${TICKET_URL}" target="_blank" class="btn-ticket">📝 Yes, Create Ticket</a>
+            <button onclick="startNewChat()" class="btn-reset">No, Start New Chat</button>
+        `;
+        
+        div.appendChild(actionDiv);
+        box.appendChild(div);
+        box.scrollTop = box.scrollHeight;
+    }
+
+    // Start App
+    init();
 </script>
+
 </body>
 </html>
