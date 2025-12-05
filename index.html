@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tapway Support</title>
+    
+    <script src="[https://cdn.jsdelivr.net/npm/marked/marked.min.js](https://cdn.jsdelivr.net/npm/marked/marked.min.js)"></script>
+
     <style>
         /* GitHub Dark Mode Colors */
         :root {
@@ -64,6 +67,7 @@
             border-radius: 6px;
             line-height: 1.5;
             font-size: 14px;
+            word-wrap: break-word; /* Prevents long code from breaking layout */
         }
 
         .user-msg {
@@ -80,6 +84,41 @@
             align-self: flex-start;
             border-top-left-radius: 2px;
         }
+
+        /* --- 2. NEW STYLES FOR READABLE CODE BLOCKS --- */
+        .bot-msg p { margin: 0 0 10px 0; }
+        .bot-msg p:last-child { margin-bottom: 0; }
+        
+        /* Code Blocks (The black boxes) */
+        .bot-msg pre { 
+            background: #0d1117; 
+            padding: 12px; 
+            border-radius: 6px; 
+            overflow-x: auto; 
+            border: 1px solid #30363d;
+            margin: 10px 0;
+        }
+        
+        /* Inline Code (e.g. `sudo nano`) */
+        .bot-msg code { 
+            font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+            background: rgba(110, 118, 129, 0.4); 
+            padding: 2px 4px; 
+            border-radius: 4px; 
+            font-size: 85%;
+        }
+        
+        /* Remove background for code inside blocks so it doesn't double up */
+        .bot-msg pre code { 
+            background: transparent; 
+            padding: 0; 
+            font-size: 100%;
+        }
+        
+        .bot-msg ul, .bot-msg ol { margin: 0 0 10px 20px; padding: 0; }
+        .bot-msg li { margin-bottom: 4px; }
+        .bot-msg strong { color: #fff; font-weight: 600; }
+        /* -------------------------------------- */
 
         .input-area {
             background-color: var(--bg-canvas-subtle);
@@ -116,7 +155,6 @@
         
         button:hover { background-color: var(--btn-primary-hover); }
 
-        /* Loader */
         .typing { font-size: 12px; color: var(--text-secondary); margin-left: 10px; display: none; }
     </style>
 </head>
@@ -137,12 +175,12 @@
     <div class="input-area">
         <input type="text" id="user-input" placeholder="Type your question here..." onkeypress="handleEnter(event)">
         <button onclick="sendMessage()">Send</button>
+        <button onclick="clearChat()" style="background: #dc3545; margin-left: 5px;">Clear</button>
     </div>
 </div>
 
 <script>
-    // IMPORTANT: If running via Ngrok, paste the URL here. 
-    // If running locally, leave it as ""
+    // Paste your ngrok URL here if running publicly
     const API_URL = "https://pseudomythically-penalizable-cristal.ngrok-free.dev"; 
 
     async function sendMessage() {
@@ -153,7 +191,6 @@
         addMessage("You", text);
         input.value = "";
 
-        // Show typing indicator
         document.getElementById("typing-indicator").style.display = "block";
 
         const formData = new FormData();
@@ -170,11 +207,30 @@
         }
     }
 
+    async function clearChat() {
+        try {
+            await fetch(`${API_URL}/clear`, { method: "POST" });
+            document.getElementById("chat-messages").innerHTML = 
+                '<div class="message bot-msg">🧹 Memory cleared! Start a new topic.</div>';
+        } catch (e) {
+            console.error("Could not clear memory", e);
+        }
+    }
+
     function addMessage(sender, text) {
         const msgDiv = document.getElementById("chat-messages");
         const div = document.createElement("div");
         div.className = `message ${sender === "You" ? "user-msg" : "bot-msg"}`;
-        div.textContent = text;
+
+        // 3. THIS IS THE MAGIC FIX:
+        if (sender === "Bot") {
+            // Use marked.js to convert "text" into "HTML"
+            div.innerHTML = marked.parse(text); 
+        } else {
+            // Keep user text safe as plain text
+            div.textContent = text; 
+        }
+        
         msgDiv.appendChild(div);
         msgDiv.scrollTop = msgDiv.scrollHeight;
     }
