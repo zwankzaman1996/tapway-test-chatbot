@@ -3,242 +3,81 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tapway Support</title>
-    
-    <script src="[https://cdn.jsdelivr.net/npm/marked/marked.min.js](https://cdn.jsdelivr.net/npm/marked/marked.min.js)"></script>
-
+    <title>Tapway Support (Safe Mode)</title>
     <style>
-        /* GitHub Dark Mode Colors */
-        :root {
-            --bg-canvas: #0d1117;
-            --bg-canvas-subtle: #161b22;
-            --border-default: #30363d;
-            --text-primary: #c9d1d9;
-            --text-secondary: #8b949e;
-            --btn-primary-bg: #238636;
-            --btn-primary-hover: #2ea043;
-            --msg-user-bg: #1f6feb;
-            --msg-bot-bg: #161b22;
-        }
-
-        body { 
-            margin: 0; padding: 0; 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; 
-            background-color: var(--bg-canvas); 
-            color: var(--text-primary);
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-        }
-        
-        #app-container {
-            width: 100%;
-            max-width: 900px;
-            display: flex;
-            flex-direction: column;
-            height: 100%;
-            border-left: 1px solid var(--border-default);
-            border-right: 1px solid var(--border-default);
-        }
-
-        header {
-            background-color: var(--bg-canvas-subtle);
-            padding: 16px 24px;
-            border-bottom: 1px solid var(--border-default);
-            font-weight: 600;
-            font-size: 18px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        #chat-messages {
-            flex: 1;
-            overflow-y: auto;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .message {
-            max-width: 80%;
-            padding: 10px 16px;
-            border-radius: 6px;
-            line-height: 1.5;
-            font-size: 14px;
-            word-wrap: break-word; /* Prevents long code from breaking layout */
-        }
-
-        .user-msg {
-            background-color: var(--msg-user-bg);
-            color: white;
-            align-self: flex-end;
-            border-top-right-radius: 2px;
-        }
-
-        .bot-msg {
-            background-color: var(--msg-bot-bg);
-            border: 1px solid var(--border-default);
-            color: var(--text-primary);
-            align-self: flex-start;
-            border-top-left-radius: 2px;
-        }
-
-        /* --- 2. NEW STYLES FOR READABLE CODE BLOCKS --- */
-        .bot-msg p { margin: 0 0 10px 0; }
-        .bot-msg p:last-child { margin-bottom: 0; }
-        
-        /* Code Blocks (The black boxes) */
-        .bot-msg pre { 
-            background: #0d1117; 
-            padding: 12px; 
-            border-radius: 6px; 
-            overflow-x: auto; 
-            border: 1px solid #30363d;
-            margin: 10px 0;
-        }
-        
-        /* Inline Code (e.g. `sudo nano`) */
-        .bot-msg code { 
-            font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
-            background: rgba(110, 118, 129, 0.4); 
-            padding: 2px 4px; 
-            border-radius: 4px; 
-            font-size: 85%;
-        }
-        
-        /* Remove background for code inside blocks so it doesn't double up */
-        .bot-msg pre code { 
-            background: transparent; 
-            padding: 0; 
-            font-size: 100%;
-        }
-        
-        .bot-msg ul, .bot-msg ol { margin: 0 0 10px 20px; padding: 0; }
-        .bot-msg li { margin-bottom: 4px; }
-        .bot-msg strong { color: #fff; font-weight: 600; }
-        /* -------------------------------------- */
-
-        .input-area {
-            background-color: var(--bg-canvas-subtle);
-            padding: 16px;
-            border-top: 1px solid var(--border-default);
-            display: flex;
-            gap: 10px;
-        }
-
-        input[type="text"] {
-            flex: 1;
-            padding: 8px 12px;
-            background-color: var(--bg-canvas);
-            border: 1px solid var(--border-default);
-            border-radius: 6px;
-            color: var(--text-primary);
-            font-size: 14px;
-        }
-        
-        input[type="text"]:focus {
-            outline: none;
-            border-color: #58a6ff;
-        }
-
-        button {
-            padding: 8px 16px;
-            background-color: var(--btn-primary-bg);
-            color: white;
-            border: 1px solid rgba(240,246,252,0.1);
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
-        }
-        
-        button:hover { background-color: var(--btn-primary-hover); }
-
-        .typing { font-size: 12px; color: var(--text-secondary); margin-left: 10px; display: none; }
+        :root { --bg: #0d1117; --text: #c9d1d9; --user: #1f6feb; --bot: #161b22; }
+        body { margin: 0; font-family: sans-serif; background: var(--bg); color: var(--text); height: 100vh; display: flex; justify-content: center; }
+        #app { width: 100%; max-width: 900px; display: flex; flex-direction: column; border: 1px solid #30363d; }
+        #messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; }
+        .msg { max-width: 80%; padding: 10px 15px; border-radius: 6px; line-height: 1.5; font-size: 14px; white-space: pre-wrap; } /* pre-wrap preserves formatting */
+        .user { background: var(--user); color: white; align-self: flex-end; }
+        .bot { background: var(--bot); border: 1px solid #30363d; align-self: flex-start; }
+        .input-box { padding: 15px; display: flex; gap: 10px; border-top: 1px solid #30363d; }
+        input { flex: 1; padding: 10px; background: var(--bg); border: 1px solid #30363d; color: var(--text); }
+        button { padding: 10px 20px; background: #238636; color: white; border: none; cursor: pointer; }
     </style>
 </head>
 <body>
-
-<div id="app-container">
-    <header>
-        <span>🤖 Tapway Support</span>
-        <span style="font-size: 12px; color: #238636; border: 1px solid #238636; padding: 2px 6px; border-radius: 20px;">AI Agent</span>
-    </header>
-
-    <div id="chat-messages">
-        <div class="message bot-msg">Hello! I'm the Tapway Support assistant. How can I help you troubleshoot today?</div>
+<div id="app">
+    <div style="padding:15px; border-bottom:1px solid #333; font-weight:bold">🤖 Tapway Support</div>
+    <div id="messages">
+        <div class="msg bot">System Online. Ask me anything.</div>
     </div>
-    
-    <div class="typing" id="typing-indicator">Agent is thinking...</div>
-
-    <div class="input-area">
-        <input type="text" id="user-input" placeholder="Type your question here..." onkeypress="handleEnter(event)">
-        <button onclick="sendMessage()">Send</button>
-        <button onclick="clearChat()" style="background: #dc3545; margin-left: 5px;">Clear</button>
+    <div class="input-box">
+        <input type="text" id="userInput" placeholder="Type here..." onkeypress="if(event.key==='Enter') send()">
+        <button onclick="send()">Send</button>
     </div>
 </div>
 
 <script>
-    // Paste your ngrok URL here if running publicly
+    // 1. Paste your ngrok URL here (No trailing slash)
     const API_URL = "https://pseudomythically-penalizable-cristal.ngrok-free.dev"; 
 
-    async function sendMessage() {
-        const input = document.getElementById("user-input");
+    async function send() {
+        const input = document.getElementById("userInput");
         const text = input.value;
         if (!text) return;
 
-        addMessage("You", text);
-        input.value = "";
-
-        document.getElementById("typing-indicator").style.display = "block";
+        addMsg("user", text);
+        input.value = "Sending...";
+        input.disabled = true;
 
         const formData = new FormData();
         formData.append("query", text);
 
         try {
+            console.log("Sending request to:", `${API_URL}/chat`);
             const res = await fetch(`${API_URL}/chat`, { method: "POST", body: formData });
+            
+            if (!res.ok) throw new Error(`Server Status: ${res.status}`);
+            
             const data = await res.json();
-            document.getElementById("typing-indicator").style.display = "none";
-            addMessage("Bot", data.answer);
+            console.log("Received data:", data);
+
+            if (data.answer) {
+                addMsg("bot", data.answer);
+            } else {
+                addMsg("bot", "⚠️ Server responded, but answer was empty.");
+            }
+
         } catch (e) {
-            document.getElementById("typing-indicator").style.display = "none";
-            addMessage("Bot", "Error: Cannot connect to Tapway Support server.");
+            console.error(e);
+            addMsg("bot", `❌ Connection Error: ${e.message}`);
+        } finally {
+            input.value = "";
+            input.disabled = false;
+            input.focus();
         }
     }
 
-    async function clearChat() {
-        try {
-            await fetch(`${API_URL}/clear`, { method: "POST" });
-            document.getElementById("chat-messages").innerHTML = 
-                '<div class="message bot-msg">🧹 Memory cleared! Start a new topic.</div>';
-        } catch (e) {
-            console.error("Could not clear memory", e);
-        }
-    }
-
-    function addMessage(sender, text) {
-        const msgDiv = document.getElementById("chat-messages");
+    function addMsg(role, text) {
+        const box = document.getElementById("messages");
         const div = document.createElement("div");
-        div.className = `message ${sender === "You" ? "user-msg" : "bot-msg"}`;
-
-        // 3. THIS IS THE MAGIC FIX:
-        if (sender === "Bot") {
-            // Use marked.js to convert "text" into "HTML"
-            div.innerHTML = marked.parse(text); 
-        } else {
-            // Keep user text safe as plain text
-            div.textContent = text; 
-        }
-        
-        msgDiv.appendChild(div);
-        msgDiv.scrollTop = msgDiv.scrollHeight;
-    }
-
-    function handleEnter(e) {
-        if (e.key === 'Enter') sendMessage();
+        div.className = `msg ${role}`;
+        div.textContent = text; // Using simple textContent to prevent crashing
+        box.appendChild(div);
+        box.scrollTop = box.scrollHeight;
     }
 </script>
-
 </body>
 </html>
